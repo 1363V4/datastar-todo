@@ -3,7 +3,6 @@ from datastar_py.sse import ServerSentEventGenerator as SSE
 from tinydb import TinyDB
 from faker import Faker
 import uuid
-import json
 
 
 # CONFIG
@@ -71,19 +70,22 @@ async def todo():
     <div id="tasks">
 """
     for n, (task_id, task) in enumerate(tasks.items()):
-        signals = json.dumps({n: {'checked': task['checked'], 'editing': False}})
         html += f"""
-        <div id="task-{task_id}" class="task" data-signals='{signals}'>
+        <div id="task-{task_id}" class="task" data-signals-task{n}.editing="0">
             <div>
-                <span data-show="!${n}.checked" data-on-click="@get('/check/{task_id}')" class="button material-icons">hide_source</span>
-                <span data-show="${n}.checked" data-on-click="@get('/uncheck/{task_id}')" class="button material-icons">check_circle</span>
+                {
+                    f"<span data-on-click=\"@get('/uncheck/{task_id}')\" class=\"button material-icons\">check_circle</span>"
+                    if task['checked']
+                    else
+                    f"<span data-on-click=\"@get('/check/{task_id}')\" class=\"button material-icons\">hide_source</span>"
+                }
             </div>
             <div>        
-                <div data-show="!${n}.editing">
+                <div data-show="!$task{n}.editing">
                     {task['content']}
-                    <span data-on-click="${n}.editing = 'True'" class="button material-icons">edit</span>
+                    <span data-on-click="$task{n}.editing = 1" class="button material-icons">edit</span>
                 </div>
-                <form class="editor" data-show="${n}.editing" data-on-submit="@post('/edit/{task_id}', {{contentType: 'form'}}); ${n}.editing = 'False'">
+                <form class="editor" data-show="$task{n}.editing" data-on-submit="@post('/edit/{task_id}', {{contentType: 'form'}})">
                     <input name="content" value="{task['content']}"/>
                     <button type="submit" class="button material-icons">done</button>
                 </form>
@@ -91,6 +93,7 @@ async def todo():
             <span data-on-click="@get('/delete/{task_id}')" class="button material-icons">delete</span>
         </div>
 """
+    # html += '''<code data-text="ctx.signals.JSON()"></code>'''
     html += """
         <input placeholder="Add item" value="" data-bind-add data-on-blur="@post('/add')"/>
     </div>
